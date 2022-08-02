@@ -9,19 +9,17 @@ import UIKit
 import SnapKit
 
 class CoinCell: UITableViewCell {
-//	var coinViewModel: CoinViewModel? {
-//		didSet {
-//			updateCell()
-//		}
-//	}
 
-	private var coinIconImageView: UIImageView!
-	private var coinNameLabel: UILabel!
-	private var coinSymbolLabel: UILabel!
-	private var coinCurrentPriceContainer: UIView!
-	private var coinCurrentPriceLabel: UILabel!
-	private var coinMinPriceLabel: UILabel!
-	private var coinMaxPriceLabel: UILabel!
+	var coinIconImageView: UIImageView!
+	var coinNameLabel: UILabel!
+	var coinSymbolLabel: UILabel!
+	var coinCurrentPriceContainer: UIView!
+	var coinCurrentPriceLabel: UILabel!
+	var coinMinPriceLabel: UILabel!
+	var coinMaxPriceLabel: UILabel!
+
+	private var task: URLSessionDataTask?
+	private var currentPrice: Double?
 
 	override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
 		super.init(style: .default, reuseIdentifier: reuseIdentifier)
@@ -80,6 +78,7 @@ class CoinCell: UITableViewCell {
 			$0.bottom.lessThanOrEqualToSuperview()
 			$0.right.equalToSuperview()
 			$0.centerY.equalTo(coinIconImageView.snp.centerY)
+			$0.width.greaterThanOrEqualTo(64)
 		}
 
 		coinMinPriceLabel = UILabel()
@@ -101,83 +100,65 @@ class CoinCell: UITableViewCell {
 		}
 	}
 
-	func updateCell(with coinViewModel: CoinViewModel, indexPathRow: Int) {
-//		guard let coinViewModel = coinViewModel else {
-//			coinIconImageView.image = nil
-//			coinNameLabel.text = nil
-//			coinSymbolLabel.text = nil
-//			coinCurrentPriceLabel.text = nil
-//			coinMinPriceLabel.text = nil
-//			coinMaxPriceLabel.text = nil
-//			return
-//		}
+	override func prepareForReuse() {
+		super.prepareForReuse()
 
+		task?.cancel()
+		self.coinIconImageView.image = nil
+	}
+
+	func updateCell(with coinViewModel: CoinViewModel) {
 		coinNameLabel.text = coinViewModel.name
 		coinSymbolLabel.text = coinViewModel.symbol
-		coinCurrentPriceLabel.text = coinViewModel.currentPrice
-		coinMaxPriceLabel.text = "max: \(coinViewModel.maxPrice)"
 
-		let minPriceAttributedString = NSMutableAttributedString(string: "min: \(coinViewModel.minPrice)", attributes: nil)
-		let minTextRange = ("min: \(coinViewModel.minPrice)" as NSString).range(of: "min:")
+		coinCurrentPriceLabel.text = coinViewModel.currentPriceAsString
+
+		if let safeCurrentPrice = currentPrice {
+			if coinViewModel.currentPrice > safeCurrentPrice {
+				UIView.animate(withDuration: 0.5, delay: 0, options: [.beginFromCurrentState], animations: { [weak self] in
+					self?.coinCurrentPriceContainer.backgroundColor = .systemGreen
+				}, completion: { [weak self] finished in
+					if finished {
+						UIView.animate(withDuration: 0.2, delay: 0, options: [.beginFromCurrentState], animations: { [weak self] in
+							self?.coinCurrentPriceContainer.backgroundColor = .white
+						}, completion: nil)
+					}
+				})
+			} else if coinViewModel.currentPrice < safeCurrentPrice {
+				UIView.animate(withDuration: 0.5, delay: 0, options: [.beginFromCurrentState], animations: { [weak self] in
+					self?.coinCurrentPriceContainer.backgroundColor = .systemRed
+				}, completion: { [weak self] finished in
+					if finished {
+						UIView.animate(withDuration: 0.2, delay: 0, options: [.beginFromCurrentState], animations: { [weak self] in
+							self?.coinCurrentPriceContainer.backgroundColor = .white
+						}, completion: nil)
+					}
+				})
+			}
+		}
+
+		let minPriceAttributedString = NSMutableAttributedString(string: "min: \(coinViewModel.minPriceAsString)", attributes: nil)
+		let minTextRange = ("min: \(coinViewModel.minPriceAsString)" as NSString).range(of: "min:")
 		minPriceAttributedString.addAttribute(.foregroundColor, value: UIColor.lightGray, range: minTextRange)
 		coinMinPriceLabel.attributedText = minPriceAttributedString
 
-		let maxPriceAttributedString = NSMutableAttributedString(string: "max: \(coinViewModel.maxPrice)", attributes: nil)
-		let maxTextRange = ("max: \(coinViewModel.maxPrice)" as NSString).range(of: "max:")
+		let maxPriceAttributedString = NSMutableAttributedString(string: "max: \(coinViewModel.maxPriceAsString)", attributes: nil)
+		let maxTextRange = ("max: \(coinViewModel.maxPriceAsString)" as NSString).range(of: "max:")
 		maxPriceAttributedString.addAttribute(.foregroundColor, value: UIColor.lightGray, range: maxTextRange)
 		coinMaxPriceLabel.attributedText = maxPriceAttributedString
 
 		if let url = coinViewModel.iconUrl {
-			let task = URLSession.shared.dataTask(with: url) { data, response, error in
+			task = URLSession.shared.dataTask(with: url) { data, response, error in
 				guard let data = data, error == nil else { return }
 
-				DispatchQueue.main.async { /// execute on main thread
-					if self.tag == indexPathRow {
-						self.coinIconImageView.image = UIImage(data: data)
-					}
+				DispatchQueue.main.async { [weak self] in
+					self?.coinIconImageView.image = UIImage(data: data)
 				}
 			}
 
-			task.resume()
+			task?.resume()
 		}
-	}
 
-//	func updateCell() {
-//		guard let coinViewModel = coinViewModel else {
-//			coinIconImageView.image = nil
-//			coinNameLabel.text = nil
-//			coinSymbolLabel.text = nil
-//			coinCurrentPriceLabel.text = nil
-//			coinMinPriceLabel.text = nil
-//			coinMaxPriceLabel.text = nil
-//			return
-//		}
-//
-//		coinNameLabel.text = coinViewModel.name
-//		coinSymbolLabel.text = coinViewModel.symbol
-//		coinCurrentPriceLabel.text = coinViewModel.currentPrice
-//		coinMaxPriceLabel.text = "max: \(coinViewModel.maxPrice)"
-//
-//		let minPriceAttributedString = NSMutableAttributedString(string: "min: \(coinViewModel.minPrice)", attributes: nil)
-//		let minTextRange = ("min: \(coinViewModel.minPrice)" as NSString).range(of: "min:")
-//		minPriceAttributedString.addAttribute(.foregroundColor, value: UIColor.lightGray, range: minTextRange)
-//		coinMinPriceLabel.attributedText = minPriceAttributedString
-//
-//		let maxPriceAttributedString = NSMutableAttributedString(string: "max: \(coinViewModel.maxPrice)", attributes: nil)
-//		let maxTextRange = ("max: \(coinViewModel.maxPrice)" as NSString).range(of: "max:")
-//		maxPriceAttributedString.addAttribute(.foregroundColor, value: UIColor.lightGray, range: maxTextRange)
-//		coinMaxPriceLabel.attributedText = maxPriceAttributedString
-//
-//		if let url = coinViewModel.iconUrl {
-//			let task = URLSession.shared.dataTask(with: url) { data, response, error in
-//				guard let data = data, error == nil else { return }
-//
-//				DispatchQueue.main.async { /// execute on main thread
-//					self.coinIconImageView.image = UIImage(data: data)
-//				}
-//			}
-//
-//			task.resume()
-//		}
-//	}
+		self.currentPrice = coinViewModel.currentPrice
+	}
 }

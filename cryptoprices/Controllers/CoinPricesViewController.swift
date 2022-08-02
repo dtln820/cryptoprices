@@ -48,9 +48,7 @@ class CoinPricesViewController: UIViewController {
 					tableView.insertRows(at: insertions.map({ IndexPath(row: $0, section: 0) }),
 										 with: .automatic)
 					tableView.reloadRows(at: modifications.map({ IndexPath(row: $0, section: 0) }),
-										 with: .automatic)
-				}, completion: { finished in
-					// ...
+										 with: .none)
 				})
 			case .error(let error):
 				// An error occurred while opening the Realm file on the background worker thread
@@ -133,6 +131,15 @@ class CoinPricesViewController: UIViewController {
 		pricesTableView.separatorInset = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
 
 		pricesTableView.dataSource = self
+//		let dataSource = UITableViewDiffableDataSource<Int, CoinEntity>(tableView: pricesTableView) { (tableView, indexPath, coinEntity) -> UITableViewCell? in
+//			let cell = tableView.dequeueReusableCell(withIdentifier: "coinCell", for: indexPath) as! CoinCell
+//			let coinViewModel = CoinViewModel(model: coinEntity)
+//			cell.tag = indexPath.row
+//			cell.updateCell(with: coinViewModel, indexPathRow: indexPath.row)
+//
+//			return cell
+//		}
+//		pricesTableView.dataSource = dataSource
 		pricesTableView.register(CoinCell.self, forCellReuseIdentifier: "coinCell")
 		pricesTableView.tableFooterView = UIView()
 		pricesTableView.snp.makeConstraints {
@@ -154,9 +161,7 @@ extension CoinPricesViewController: UITableViewDataSource {
 		let coinViewModel = CoinViewModel(model: coinForRow)
 
 		let cell = tableView.dequeueReusableCell(withIdentifier: "coinCell", for: indexPath) as! CoinCell
-		cell.tag = indexPath.row
-		cell.updateCell(with: coinViewModel, indexPathRow: indexPath.row)
-//		cell.coinViewModel = coinViewModel
+		cell.updateCell(with: coinViewModel)
 
 		return cell
 	}
@@ -170,7 +175,7 @@ extension CoinPricesViewController: CryptoDelegate {
 	}
 
 	func cryptoAPIDidUpdateCoin(_ coin: Coin) {
-		print("coin updated: \(coin.name)")
+		print("coin updated: \(coin.name) with price \(coin.price)")
 		DispatchQueue.main.async {
 			try! self.localRealm.write {
 				if let localCoin = self.localRealm.object(ofType: CoinEntity.self, forPrimaryKey: coin.code) {

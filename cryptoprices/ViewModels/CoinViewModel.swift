@@ -36,7 +36,11 @@ class CoinViewModel {
 		return URL(string: iconUrlAsString)
 	}
 
-	var currentPrice: String {
+	var currentPrice: Double {
+		return model.currentPrice
+	}
+
+	var currentPriceAsString: String {
 		if model.currentPrice > 1 {
 			self.numberFormatter.maximumFractionDigits = 2
 		} else {
@@ -45,7 +49,7 @@ class CoinViewModel {
 		return "$ \(numberFormatter.string(from: model.currentPrice as NSNumber)!)"
 	}
 
-	var minPrice: String {
+	var minPriceAsString: String {
 		if model.minPrice > 1 {
 			self.numberFormatter.maximumFractionDigits = 2
 		} else {
@@ -54,7 +58,7 @@ class CoinViewModel {
 		return "$ \(numberFormatter.string(from: model.minPrice as NSNumber)!)"
 	}
 
-	var maxPrice: String {
+	var maxPriceAsString: String {
 		if model.maxPrice > 1 {
 			self.numberFormatter.maximumFractionDigits = 2
 		} else {
